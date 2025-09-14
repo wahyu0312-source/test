@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ポジション一覧 | 品質管理生産技術</title>
+<style>
+  :root{ --bg1:#eef2ff; --bg2:#f8fafc; --card:#fff; --ink:#0f172a; --muted:#64748b; --border:#e5e7eb; --accent:#2563eb; --shadow:0 30px 60px rgba(15,23,42,.08); --radius:22px; }
+  *{box-sizing:border-box}
+  body{
+    margin:0; color:var(--ink);
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans JP","Yu Gothic",sans-serif;
+    background:
+      radial-gradient(1200px 600px at -10% -10%, #c7d2fe 0%, transparent 60%),
+      radial-gradient(900px 500px at 110% 0%, #bae6fd 0%, transparent 55%),
+      linear-gradient(120deg,var(--bg1),var(--bg2));
+    padding-bottom:64px;
+  }
+  header{position:sticky;top:0;z-index:10;background:#ffffffcc;backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+  .wrap{max-width:1200px;margin:0 auto;padding:12px 20px}
+  .row{display:flex;justify-content:space-between;align-items:center;gap:16px}
+  nav a{margin-right:16px;color:var(--accent);font-weight:700;text-decoration:none}
+  nav a:hover{text-decoration:underline}
+
+  main{max-width:1200px;margin:28px auto;padding:0 20px}
+  .card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;overflow:auto}
+  .title{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0 0 8px}
+  .muted{color:var(--muted)} .small{font-size:12px}
+  .btn{height:36px;padding:0 12px;border:1px solid var(--border);border-radius:12px;background:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:999px;background:#fff;font-weight:700}
+  .pill-wrap{display:flex;gap:8px;flex-wrap:wrap}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  select,input{height:36px;padding:0 12px;border:1px solid var(--border);border-radius:12px;background:#fff}
+
+  table{width:100%;border-collapse:separate;border-spacing:0}
+  thead th{background:#f8fafc;color:#475569;text-align:left;font-weight:700;padding:10px 12px;border-bottom:1px solid var(--border)}
+  tbody td{padding:10px 12px;border-bottom:1px solid var(--border);white-space:nowrap}
+
+  .footer{position:fixed;bottom:0;left:0;right:0;text-align:center;font-size:12px;color:#64748b;background:#f1f5f9;padding:4px 0}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap row">
+    <strong>ポジション一覧（最新スキャン）</strong>
+    <nav>
+      <a href="./index.html">← ダッシュボード</a>
+      <a href="./item.html">タイムライン</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- Summary -->
+  <section class="card">
+    <div class="title">
+      <h2 style="margin:0">サマリー</h2>
+      <div class="controls">
+        <button id="btnLive" class="btn">Live</button>
+        <select id="selInterval">
+          <option value="5000">5s</option>
+          <option value="10000">10s</option>
+          <option value="30000">30s</option>
+          <option value="60000" selected>60s</option>
+        </select>
+        <span id="hint" class="small muted"></span>
+      </div>
+    </div>
+    <div id="chipsEvent" class="pill-wrap" style="margin-bottom:8px"></div>
+    <div id="chipsLoc" class="pill-wrap"></div>
+  </section>
+
+  <!-- Table -->
+  <section class="card" style="margin-top:16px">
+    <div class="title">
+      <h2 style="margin:0">ポジションテーブル</h2>
+      <div class="controls">
+        <input id="q" placeholder="検索（ID/顧客/商品名/機種/位置）">
+        <select id="fEvent">
+          <option value="">Event: All</option>
+          <option>RECEIVE</option><option>WIP</option><option>QC</option><option>PACK</option><option>SHIP</option>
+        </select>
+        <input id="fLoc" placeholder="Location filter">
+        <button id="btnExport" class="btn">Export Excel</button>
+      </div>
+    </div>
+    <table id="tbl">
+      <thead>
+        <tr>
+          <th>Item ID</th><th>最新イベント</th><th>現在位置</th><th>最終更新</th>
+          <th>顧客名</th><th>商品名</th><th>機種</th>
+        </tr>
+      </thead>
+      <tbody id="tb"></tbody>
+    </table>
+  </section>
+</main>
+
+<div class="footer">Design by Wahyu</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+  // ===== Config (samakan dgn halaman lain) =====
+  const SHEET_ID ="1lYl7oYk6atnm3KqC6VwufARX3ooRyJ2VmC_xYFb4-OE";
+  const TAB_MASTER ="最新情報";
+  const TAB_LOG ="scan_log";
+  const CSV_MASTER = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(TAB_MASTER)}`;
+  const CSV_LOG    = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(TAB_LOG)}`;
+  const S = s => String(s ?? '').trim();
+
+  // ===== Utils =====
+  function parseCSV(t){
+    const rows=[], re=/\s*("(?:[^"]|"")*"|[^,]*)\s*(,|\n|$)/g;
+    let m, row=[]; t=t.replace(/\r\n?/g,"\n");
+    for(let i=0;i<t.length;){
+      re.lastIndex=i; m=re.exec(t); if(!m) break;
+      let cell=m[1]; if(cell.startsWith('"')) cell=cell.slice(1,-1).replace(/""/g,'"');
+      row.push(cell); i=re.lastIndex;
+      if(m[2]==="\n"||m[2]===""){ rows.push(row); row=[]; }
+    }
+    return rows.filter(r=>r.length && r.some(c=>S(c)!==""));
+  }
+  function idxMaster(h){
+    const map={}; h.forEach((x,i)=>map[S(x)]=i);
+    const find=names=>{ for(const n of names){ if(n in map) return map[n]; } return null; };
+    return {
+      date:find(["出荷日","日付","Date"]),
+      cust:find(["顧客名","客先","Customer"]),
+      draw:find(["図番","Drawing","図面"]),
+      item:find(["商品名","品名","Item"]),
+      machine:find(["機種","機種名","Machine"]),
+      note:find(["注番","注文番号","備考","Order"])
+    };
+  }
+
+  // ===== State =====
+  let live=false, timer=null, interval=60000;
+  let rowsOut=[]; // composed rows for table
+
+  function setLive(v){
+    live=v; paintHint();
+    if(timer) clearInterval(timer);
+    if(v){ timer=setInterval(()=>{ if(document.visibilityState==='visible') load(); }, interval); }
+  }
+  function paintHint(){ document.getElementById('hint').textContent = live?`Live: On / ${Math.round(interval/1000)}s`:'Live: Off'; }
+
+  // ===== Load & compose =====
+  async function load(){
+    const [rLog, rMas] = await Promise.all([
+      fetch(CSV_LOG+"&_ts="+Date.now(),{cache:'no-store'}),
+      fetch(CSV_MASTER+"&_ts="+Date.now(),{cache:'no-store'})
+    ]);
+    if(!rLog.ok || !rMas.ok){ document.getElementById('hint').textContent='読み込み失敗（公開/共有設定を確認）'; return; }
+    const [tLog, tMas] = await Promise.all([rLog.text(), rMas.text()]);
+    const log = parseCSV(tLog);
+    const mas = parseCSV(tMas);
+
+    // Build latest map from scan_log
+    const hL = log[0].map(S);
+    const iL = { ts:hL.indexOf('ts'), id:hL.indexOf('item_id'), ev:hL.indexOf('event'), loc:hL.indexOf('location') };
+    const latest = {}; // id -> {ts, ev, loc}
+    for(let i=1;i<log.length;i++){
+      const r=log[i], id=S(r[iL.id]); if(!id) continue;
+      const ts=new Date(S(r[iL.ts])||0).getTime(); if(!ts) continue;
+      if(!latest[id] || ts > latest[id].ts){ latest[id]={ ts, ev:S(r[iL.ev]), loc:S(r[iL.loc]) }; }
+    }
+
+    // Master index for enrichment
+    const hM = mas[0].map(S); const iM = idxMaster(hM);
+    const rowsMas = mas.slice(1);
+    const byDraw = new Map(), byItem = new Map(), byNote = new Map();
+    for(const r of rowsMas){
+      const draw=S(r[iM.draw]), item=S(r[iM.item]), note=S(r[iM.note]);
+      const entry={ cust:S(r[iM.cust]), item:S(r[iM.item]), machine:S(r[iM.machine]) };
+      if(draw) byDraw.set(draw, entry);
+      if(item) byItem.set(item, entry);
+      if(note) byNote.set(note, entry);
+    }
+
+    // Compose table rows
+    rowsOut = [];
+    Object.entries(latest).forEach(([id,v])=>{
+      const meta = byDraw.get(id) || byItem.get(id) || byNote.get(id) || {};
+      rowsOut.push({
+        id,
+        ev: v.ev || '-',
+        loc: v.loc || '-',
+        ts: v.ts ? new Date(v.ts) : null,
+        cust: meta.cust || '',
+        item: meta.item || '',
+        machine: meta.machine || ''
+      });
+    });
+
+    render();
+    paintChips(rowsOut);
+  }
+
+  // ===== Render table (with filters) =====
+  function render(){
+    const q = S(document.getElementById('q').value).toLowerCase();
+    const fe= S(document.getElementById('fEvent').value);
+    const fl= S(document.getElementById('fLoc').value).toLowerCase();
+
+    let view = rowsOut;
+    if(q){
+      view = view.filter(r =>
+        r.id.toLowerCase().includes(q) ||
+        (r.cust||'').toLowerCase().includes(q) ||
+        (r.item||'').toLowerCase().includes(q) ||
+        (r.machine||'').toLowerCase().includes(q) ||
+        (r.loc||'').toLowerCase().includes(q)
+      );
+    }
+    if(fe){ view = view.filter(r=>r.ev===fe); }
+    if(fl){ view = view.filter(r=>r.loc.toLowerCase().includes(fl)); }
+
+    const tb=document.getElementById('tb'); tb.innerHTML='';
+    view.sort((a,b)=>(b.ts?.getTime()||0)-(a.ts?.getTime()||0));
+    view.forEach(r=>{
+      tb.insertAdjacentHTML('beforeend', `
+        <tr>
+          <td><a href="./item.html?id=${encodeURIComponent(r.id)}" style="color:#2563eb;text-decoration:none">${r.id}</a></td>
+          <td>${r.ev}</td>
+          <td>${r.loc}</td>
+          <td>${r.ts ? r.ts.toLocaleString() : '-'}</td>
+          <td>${r.cust||''}</td>
+          <td>${r.item||''}</td>
+          <td>${r.machine||''}</td>
+        </tr>
+      `);
+    });
+    document.getElementById('hint').textContent = `件数: ${view.length} / 全体: ${rowsOut.length}`;
+  }
+
+  // ===== Chips summary =====
+  function paintChips(rows){
+    const cEvent = {}, cLoc = {};
+    rows.forEach(r=>{
+      cEvent[r.ev] = (cEvent[r.ev]||0)+1;
+      cLoc[r.loc] = (cLoc[r.loc]||0)+1;
+    });
+    const evBox = document.getElementById('chipsEvent'); evBox.innerHTML='';
+    ['RECEIVE','WIP','QC','PACK','SHIP'].forEach(k=>{
+      evBox.insertAdjacentHTML('beforeend', `<div class="pill">${k} ${cEvent[k]||0}</div>`);
+    });
+    const locBox = document.getElementById('chipsLoc'); locBox.innerHTML='';
+    Object.entries(cLoc).sort((a,b)=>b[1]-a[1]).slice(0,10).forEach(([loc,c])=>{
+      locBox.insertAdjacentHTML('beforeend', `<div class="pill">${loc}: ${c}</div>`);
+    });
+  }
+
+  // ===== Export =====
+  function exportExcel(){
+    const wb = XLSX.utils.table_to_book(document.getElementById('tbl'),{sheet:"Positions"});
+    XLSX.writeFile(wb,"positions.xlsx");
+  }
+
+  // ===== Events =====
+  document.getElementById('btnExport').addEventListener('click', exportExcel);
+  document.getElementById('btnLive').addEventListener('click', ()=> setLive(!live));
+  document.getElementById('selInterval').addEventListener('change', e=>{
+    interval=parseInt(e.target.value,10)||60000; if(live) setLive(true); else paintHint();
+  });
+  ['q','fEvent','fLoc'].forEach(id=> document.getElementById(id).addEventListener('input', render));
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState!=='visible' && live){ setLive(false); } });
+
+  paintHint();
+  load();
+</script>
+</body>
+</html>
