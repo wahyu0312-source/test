@@ -3,231 +3,97 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>品質管理生産技術システム</title>
+<title>ポジション一覧 | 品質管理生産技術</title>
 <style>
-  :root{
-    --bg1:#eef2ff; --bg2:#f8fafc; --card:#fff; --ink:#0f172a; --muted:#64748b; --border:#e5e7eb;
-    --accent:#2563eb; --danger:#b91c1c; --shadow:0 30px 60px rgba(15,23,42,.08); --radius:22px;
-    --urgent-row:#fee2e2; --urgent-cell:#ef4444;
-  }
+  :root{ --bg1:#eef2ff; --bg2:#f8fafc; --card:#fff; --ink:#0f172a; --muted:#64748b; --border:#e5e7eb; --accent:#2563eb; --shadow:0 30px 60px rgba(15,23,42,.08); --radius:22px; }
   *{box-sizing:border-box}
-  body{
-    margin:0; color:var(--ink);
-    font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans JP","Yu Gothic",sans-serif;
-    background:
-      radial-gradient(1200px 600px at -10% -10%, #c7d2fe 0%, transparent 60%),
-      radial-gradient(900px 500px at 110% 0%, #bae6fd 0%, transparent 55%),
-      linear-gradient(120deg,var(--bg1),var(--bg2));
-    padding-bottom:64px;
-  }
+  body{ margin:0; color:var(--ink); font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans JP","Yu Gothic",sans-serif;
+        background: radial-gradient(1200px 600px at -10% -10%, #c7d2fe 0%, transparent 60%), radial-gradient(900px 500px at 110% 0%, #bae6fd 0%, transparent 55%), linear-gradient(120deg,var(--bg1),var(--bg2));
+        padding-bottom:64px; }
   header{position:sticky;top:0;z-index:10;background:#ffffffcc;backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
   .wrap{max-width:1200px;margin:0 auto;padding:12px 20px}
   .row{display:flex;justify-content:space-between;align-items:center;gap:16px}
-  nav a{margin-left:20px;color:var(--accent);font-weight:700;text-decoration:none}
+  nav a{margin-right:16px;color:var(--accent);font-weight:700;text-decoration:none}
   nav a:hover{text-decoration:underline}
-  .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-  .btn, .menu-btn{
-    height:36px;padding:0 12px;border:1px solid var(--border);border-radius:12px;background:#fff;cursor:pointer;
-    display:inline-flex;align-items:center;gap:6px;line-height:1
-  }
-  .btn[disabled]{opacity:.6;cursor:wait}
-  .btn.active{border-color:#93c5fd;background:#f0f9ff}
-  .small{font-size:12px;color:var(--muted)}
-  .muted{color:var(--muted)}
-  .segmented{display:inline-flex;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#fff}
-  .segmented .btn{border:0;border-right:1px solid var(--border);border-radius:0;height:36px}
-  .segmented .btn:last-child{border-right:0}
-  .badge{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;font-size:12px;font-weight:700;color:#0f172a;background:#f1f5f9;border:1px solid var(--border);border-radius:999px}
-  .badge::before{content:"⏱";font-size:12px}
   main{max-width:1200px;margin:28px auto;padding:0 20px}
-  .card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;overflow:auto}
-  .card-title{display:flex;align-items:center;justify-content:space-between;margin:0 0 10px}
-  .subtle{color:#475569;font-size:14px}
-  table{width:100%;border-collapse:separate;border-spacing:0;min-width:900px}
-  thead th{background:#f8fafc;color:#475569;position:sticky;top:0;z-index:1;text-align:left;font-weight:700;padding:12px 14px;border-bottom:1px solid var(--border)}
-  tbody td{padding:12px 14px;border-bottom:1px solid var(--border);white-space:nowrap}
-  tbody tr:hover{background:#f1f5ff}
-  tr.row-urgent td{background:var(--urgent-row)!important;color:#b91c1c;font-weight:600}
-  td.cell-urgent{background:var(--urgent-cell)!important;color:#fff!important;font-weight:800!important;border-radius:8px}
-  .flag-urgent{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:999px;background:#dc2626;color:#fff;font-weight:800;font-size:12px;margin-right:8px}
-  .flag-urgent::before{content:"⚠";}
-  .tag{display:inline-flex;align-items:center;padding:2px 10px;border-radius:999px;font-weight:800;font-size:12px;color:#fff;margin-right:8px}
-  .tag-done{background:#0ea5e9}
-  .tag-assem{background:#f59e0b}
-  .tag-assem-done{background:#10b981}
-  .tag-inspect{background:#8b5cf6}
-  .tag-not{background:#94a3b8}
-  .chip{display:inline-flex;align-items:center;gap:8px;background:#f1f5f9;border:1px solid var(--border);padding:6px 10px;border-radius:999px}
-  .chip strong{font-size:12px;color:#0f172a}
-  .chip .count{font-weight:800}
-  #urgent-banner{background:#b91c1c;color:#fff;padding:10px 16px;border-radius:10px;margin-bottom:14px;font-weight:bold;text-align:center;animation:blink 1s infinite}
-  @keyframes blink{0%,50%,100%{background:#b91c1c}25%,75%{background:#ef4444}}
-  .export-bar{margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-  .filterbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0 0}
-  .filterbar input[type="date"]{padding:8px 10px;border:1px solid var(--border);border-radius:10px}
-  @media (max-width: 1024px){ table{min-width:unset} }
-  @media (max-width: 768px){
-    .row{flex-direction:column;align-items:flex-start}
-    nav{display:flex;flex-wrap:wrap;gap:10px}
-    table{min-width:unset;font-size:12px}
-    .card{padding:12px}
-    .export-bar{justify-content:flex-start}
-    .controls{width:100%}
-    .menubar{margin-left:auto}
-  }
-  .marquee{position:fixed;left:0;right:0;bottom:20px;background:var(--accent);color:#fff;font-weight:bold;padding:6px 0;white-space:nowrap;overflow:hidden;z-index:20}
-  .marquee span{display:inline-block;padding-left:100%;animation:marquee 25s linear infinite}
-  @keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}
-  .footer{position:fixed;bottom:0;left:0;right:0;text-align:center;font-size:12px;color:#muted;background:#f1f5f9;padding:4px 0;z-index:21}
-  .menubar{ position:relative }
-  .menu{
-    position:absolute; top:110%; right:0; min-width:220px; background:#fff;
-    border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow);
-    padding:6px; display:none; z-index:100;
-  }
-  .menu.open{ display:block }
-  .menu .sec{ padding:6px 10px 4px; font-size:12px; color:#6b7280 }
-  .menu a, .menu button{
-    display:flex; align-items:center; gap:8px; width:100%;
-    padding:9px 10px; border:0; background:transparent; border-radius:8px; text-align:left; color:#0f172a;
-  }
-  .menu a{text-decoration:none}
-  .menu a:hover, .menu button:hover{ background:#f1f5f9 }
-  .sep{ height:1px; background:var(--border); margin:6px }
-
-  /* Process board chips */
-  .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:999px;background:#fff;box-shadow:var(--shadow);font-weight:700}
-  .pill small{color:#64748b;font-weight:600}
+  .card{background:#fff;border:1px solid var(--border);border-radius:22px;box-shadow:var(--shadow);padding:18px;overflow:auto}
+  .title{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0 0 8px}
+  .muted{color:var(--muted)} .small{font-size:12px}
+  .btn{height:36px;padding:0 12px;border:1px solid var(--border);border-radius:12px;background:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:999px;background:#fff;font-weight:700}
   .pill-wrap{display:flex;gap:8px;flex-wrap:wrap}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  select,input{height:36px;padding:0 12px;border:1px solid var(--border);border-radius:12px;background:#fff}
+  table{width:100%;border-collapse:separate;border-spacing:0}
+  thead th{background:#f8fafc;color:#475569;text-align:left;font-weight:700;padding:10px 12px;border-bottom:1px solid var(--border)}
+  tbody td{padding:10px 12px;border-bottom:1px solid var(--border);white-space:nowrap}
+  .footer{position:fixed;bottom:0;left:0;right:0;text-align:center;font-size:12px;color:#64748b;background:#f1f5f9;padding:4px 0}
 </style>
 </head>
 <body>
 <header>
   <div class="wrap row">
-    <div style="display:flex;align-items:center;gap:10px">
-      <img src="tsh.png" alt="TSH" style="height:36px">
-      <strong>品質管理生産技術</strong>
-    </div>
+    <strong>ポジション一覧（最新スキャン）</strong>
     <nav>
-      <a href="./index.html"><strong>ホーム</strong></a>
-      <a href="./forms.html">出荷検査成績書</a>
-      <a href="./sagyoutejunsho.html">作業手順書</a>
-      <a href="./charts.html">チャート</a>
-      <a href="./quality.html">品質情報</a>
-      <a href="./claim.html">Trial Page</a>
+      <a href="./index.html">← ダッシュボード</a>
+      <a href="./item.html">タイムライン</a>
     </nav>
-    <div class="controls">
-      <div class="segmented" role="group" aria-label="Auto refresh controls">
-        <button id="btnRefresh" class="btn" type="button" title="Reload now">Refresh</button>
-        <button id="btnLive" class="btn" type="button" aria-pressed="false" title="Toggle live">Live</button>
-      </div>
-      <span id="intervalInfo" class="badge">60s</span>
-      <!-- Scan -->
-      <button id="btnScan" class="btn" type="button">Scan</button>
-
-      <!-- ▼ 管理 dropdown -->
-      <div class="menubar">
-        <button id="menuBtn" class="menu-btn" type="button">管理 ▾</button>
-        <div id="menu" class="menu" role="menu" aria-hidden="true">
-          <div class="sec">ナビ</div>
-          <a href="./" role="menuitem">🏠 トップ</a>
-          <a href="./forms.html" role="menuitem">📄 出荷検査成績書</a>
-          <a href="./quality.html" role="menuitem">📊 品質情報</a>
-          <a href="./admin-prefix.html" role="menuitem">🛠️ Admin Prefix</a>
-          <div class="sep"></div>
-          <div class="sec">操作</div>
-          <button id="m-refresh" role="menuitem">🔄 Refresh</button>
-          <button id="m-live" role="menuitem">🟢 Live 切替</button>
-        </div>
-      </div>
-      <!-- ▲ 管理 dropdown -->
-    </div>
   </div>
 </header>
 
-<main>
-  <div id="urgent-banner">現在、至急案件はありません。</div>
-
-  <div style="display:flex;justify-content:space-between;align-items:end">
-    <h1>出荷状況一覧</h1>
-    <span id="lastUpdated" class="small"></span>
-  </div>
-
-  <!-- Process Board -->
-  <section class="card" id="processBoard">
-    <div class="card-title">
-      <h2 style="margin:0">工程進捗（最新スキャン基準）</h2>
-      <span class="small muted">スキャンのたびに即時更新</span>
-    </div>
-    <div class="pill-wrap" id="procPills">
-      <!-- pills inject -->
-    </div>
-    <div class="small muted" id="procHint" style="margin-top:8px"></div>
-  </section>
-
-  <!-- 本日出荷 -->
-  <section id="todaySection" class="card" style="display:none;margin-bottom:20px">
-    <div class="card-title">
-      <h2 style="margin:0">本日出荷</h2>
-      <span class="chip"><strong>件数</strong><span id="todayCount" class="count">0</span></span>
-    </div>
-    <table id="todayTable">
-      <thead><tr id="todayHead"></tr></thead>
-      <tbody id="todayBody"></tbody>
-    </table>
-  </section>
-
-  <!-- 全件一覧 -->
+<main class="grid">
   <section class="card">
-    <div class="card-title">
-      <h2 style="margin:0">全件一覧</h2>
-      <div class="filterbar">
-        <label class="subtle">出荷日フィルタ：</label>
-        <input type="date" id="filterDate">
-        <button class="btn" id="btnToday" type="button">本日出荷のみ</button>
-        <button class="btn" id="btnClear" type="button">Clear</button>
+    <div class="title">
+      <h2 style="margin:0">サマリー</h2>
+      <div class="controls">
+        <button id="btnLive" class="btn">Live</button>
+        <select id="selInterval">
+          <option value="5000">5s</option><option value="10000">10s</option>
+          <option value="30000">30s</option><option value="60000" selected>60s</option>
+        </select>
+        <span id="hint" class="small muted"></span>
       </div>
     </div>
+    <div id="chips" class="pill-wrap"></div>
+  </section>
 
-    <div class="export-bar">
-      <button class="btn" id="btnExcel" type="button">Export Excel</button>
-      <button class="btn" id="btnPDF" type="button">Export PDF</button>
+  <section class="card" style="margin-top:16px">
+    <div class="title">
+      <h2 style="margin:0">ポジションテーブル</h2>
+      <div class="controls">
+        <input id="q" placeholder="検索（ID/顧客/商品名/機種/位置）">
+        <select id="fEvent">
+          <option value="">Event: All</option>
+          <option>RECEIVE</option><option>WIP</option><option>QC</option><option>PACK</option><option>SHIP</option>
+        </select>
+        <input id="fLoc" placeholder="Location filter">
+        <button id="btnExport" class="btn">Export Excel</button>
+      </div>
     </div>
-
-    <table id="shipTable">
-      <thead><tr id="shipHead"></tr></thead>
-      <tbody id="shipBody"></tbody>
+    <table>
+      <thead>
+        <tr>
+          <th>Item ID</th><th>最新イベント</th><th>現在位置</th><th>最終更新</th>
+          <th>顧客名</th><th>商品名</th><th>機種</th>
+        </tr>
+      </thead>
+      <tbody id="tb"></tbody>
     </table>
-    <div class="muted small" id="shipHint"></div>
   </section>
 </main>
 
-<div class="marquee"><span>品質管理生産技術システム - 最新の出荷状況を表示しています - Awali Dengan Bismillah</span></div>
 <div class="footer">Design by Wahyu</div>
 
-<!-- Export libs -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-<!-- ZXing for camera barcode -->
-<script src="https://unpkg.com/@zxing/browser@latest"></script>
-
 <script>
-  // ===== Config =====
+  // ===== Config (samakan dengan halaman lain) =====
   const SHEET_ID ="1lYl7oYk6atnm3KqC6VwufARX3ooRyJ2VmC_xYFb4-OE";
-  const TAB_NAME ="最新情報";
-  const CSV_URL  =`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(TAB_NAME)}`;
-  const LOG_TAB  ="scan_log";
-  const LOG_CSV  =`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(LOG_TAB)}`;
-
-  // ===== Scan Endpoint (Apps Script kamu) =====
-  const LOG_API   ="https://script.google.com/macros/s/AKfycbxbStGHwWil46OzgINGXf8QyDQnylqao171zUsQyoHLrNjveLpZoc2NSBaEUsBkgCjL/exec";
-  const LOG_TOKEN ="optional-or-same-as-server"; // kalau server tidak cek token, nilai ini tidak dipakai
-  const CURRENT_USER ="Wahyu";
-
+  const TAB_MASTER ="最新情報";
+  const TAB_LOG ="scan_log";
+  const CSV_MASTER = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(TAB_MASTER)}`;
+  const CSV_LOG = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(TAB_LOG)}`;
   const S = s => String(s ?? '').trim();
 
-  // ===== CSV parser =====
   function parseCSV(t){
     const rows=[], re=/\s*("(?:[^"]|"")*"|[^,]*)\s*(,|\n|$)/g;
     let m, row=[]; t=t.replace(/\r\n?/g,"\n");
@@ -239,416 +105,140 @@
     }
     return rows.filter(r=>r.length && r.some(c=>S(c)!==""));
   }
-
-  // ===== Header indexer =====
-  function indexByName(header){
-    const map={}; header.forEach((h,i)=>map[S(h)]=i);
-    const find=names=>{for(const n of names){if(n in map) return map[n];} return null;};
-    const findFuzzy = (regex) => { for(let i=0;i<header.length;i++){ if(regex.test(S(header[i]))) return i; } return null; };
+  function indexMaster(h){
+    const map={}; h.forEach((x,i)=>map[S(x)]=i);
+    const find=names=>{ for(const n of names){ if(n in map) return map[n]; } return null; };
     return {
       date:find(["出荷日","日付","Date"]),
       cust:find(["顧客名","客先","Customer"]),
       draw:find(["図番","Drawing","図面"]),
       item:find(["商品名","品名","Item"]),
       machine:find(["機種","機種名","Machine"]),
-      qty:find(["数量","Qty"]),
-      to:find(["送り先","納品先","送付先"]),
-      note:find(["注番","注文番号","備考","注文","Order","注釈"]),
-      status_done:find(["製品状況","製品状態","納品状況"]) ?? findFuzzy(/(製品|納品).*(状況|状態)/),
-      status_flag:find(["Status","ステータス","状態","至急"]) ?? findFuzzy(/status|至急/i),
-      qc_check:  find(["検査チェックシート","検査ﾁｪｯｸｼｰﾄ","CheckSheet"]) ?? findFuzzy(/(検査|ﾁｪｯｸ|チェック).*シート|check/i),
-      qc_label:  find(["テプラ","ﾃﾌﾟﾗ","ラベル","Label"])            ?? findFuzzy(/(ﾃﾌﾟﾗ|テプラ|ﾗﾍﾞﾙ|ラベル|label)/i),
-      qc_result: find(["検査成績表","成績表","InspectionReport"])   ?? findFuzzy(/(検査|inspection).*(成績|report)/i),
-      qc_pack:   find(["梱包","Packing","包装"])                    ?? findFuzzy(/(梱包|packing|包装)/i),
-    };
-  }
-  const valAt = (row, idx) => (idx==null ? "" : (row[idx] ?? ""));
-
-  // ===== Date helpers =====
-  function parseJPDate(str){
-    const s=String(str??"").trim();
-    const mJP=s.match(/^(\d{4})\D(\d{1,2})\D(\d{1,2})/);
-    if(mJP) return new Date(mJP[1], mJP[2]-1, mJP[3]);
-    const parts=s.replaceAll('-','/').split('/');
-    if(parts.length===3) return new Date(parts[0], parts[1]-1, parts[2]);
-    const d=new Date(s);
-    return isNaN(d)?null:d;
-  }
-  function sameYMD(a,b){ if(!a||!b) return false; return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
-  function toInputDate(d){ const z=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`; }
-  function isUrgent(v){ const t=S(v).toLowerCase(); return t==="至急"||t==="urgent"||t==="緊急"||t==="1"||t==="true"; }
-
-  // ===== 製品状況 → Badge =====
-  function getStatusFromValue(val){
-    const raw = S(val);
-    const t   = raw.replace(/\s/g,'').toLowerCase();
-    if(!t || /(未|clear)/.test(t)) return {label:'未組立', cls:'tag-not'};
-    if(/(検査済み|済|完了|ok|done)/.test(t)) return {label:'済', cls:'tag-done'};
-    if(/(組立完了)/.test(raw))            return {label:'組立完了', cls:'tag-assem-done'};
-    if(/(検査中|検中)/.test(raw))         return {label:'検査中',   cls:'tag-inspect'};
-    if(/(組立中|組中)/.test(raw))         return {label:'組立中',   cls:'tag-assem'};
-    if(/検/.test(raw))                    return {label:'検査中',   cls:'tag-inspect'};
-    if(/組/.test(raw))                    return {label:'組立中',   cls:'tag-assem'};
-    return null;
-  }
-
-  // ===== Comparator (Urgent → Status → Date desc) =====
-  function makeComparator(idx){
-    const rank = s => ({ '検査中':1, '組立中':2, '未組立':3, '組立完了':4, '済':5 }[s] ?? 99);
-    return (a,b)=>{
-      const au=idx.status_flag!=null && isUrgent(valAt(a, idx.status_flag));
-      const bu=idx.status_flag!=null && isUrgent(valAt(b, idx.status_flag));
-      if(au!==bu) return au?-1:1;
-      const sa = idx.status_done!=null ? (getStatusFromValue(valAt(a, idx.status_done))?.label) : null;
-      const sb = idx.status_done!=null ? (getStatusFromValue(valAt(b, idx.status_done))?.label) : null;
-      if(rank(sa)!==rank(sb)) return rank(sa)-rank(sb);
-      const da=idx.date!=null ? parseJPDate(valAt(a, idx.date)) : null;
-      const db=idx.date!=null ? parseJPDate(valAt(b, idx.date)) : null;
-      const ta = da ? da.getTime() : -Infinity;
-      const tb = db ? db.getTime() : -Infinity;
-      return tb - ta;
+      note:find(["注番","注文番号","備考","Order"])
     };
   }
 
-  // ===== Scan log fetch & map (latest per item_id) =====
-  async function fetchScanMap(){
-    try{
-      const res = await fetch(LOG_CSV + "&_ts=" + Date.now(), {cache:'no-store'});
-      if(!res.ok) return {map:{}, stats:{}};
-      const text = await res.text();
-      const rows = parseCSV(text);
-      if(rows.length < 2) return {map:{}, stats:{}};
-      const header = rows[0].map(S);
-      const idx = {
-        ts: header.indexOf('ts'),
-        item: header.indexOf('item_id'),
-        ev: header.indexOf('event'),
-        loc: header.indexOf('location')
-      };
-      const map = {};
-      const statsEvent = {}; // count by event
-      const statsLoc = {};   // count by location (latest)
-      for(let i=1;i<rows.length;i++){
-        const r = rows[i];
-        const id = S(r[idx.item]);
-        const ts = new Date(S(r[idx.ts]) || 0).getTime();
-        if(!id || !ts) continue;
-        const ev = S(r[idx.ev]);
-        const loc= S(r[idx.loc]);
-        // maintain latest
-        const prev = map[id]?.ts || -1;
-        if(ts > prev){
-          map[id] = { ts, event: ev, location: loc };
-        }
-        // raw stats by event (scans count)
-        statsEvent[ev] = (statsEvent[ev]||0) + 1;
-      }
-      // derive stats by latest location/event
-      Object.values(map).forEach(({event, location})=>{
-        statsLoc[location||'-'] = (statsLoc[location||'-']||0)+1;
-        statsEvent[event||'-']  = (statsEvent[event||'-']||0);
-      });
-      return {map, stats:{event:statsEvent, location:statsLoc, total:Object.keys(map).length}};
-    }catch(e){
-      console.warn('fetchScanMap error', e);
-      return {map:{}, stats:{}};
-    }
+  let live=false, timer=null, interval=60000;
+  function setLive(v){
+    live=v; document.getElementById('btnLive').classList.toggle('btn-on', v);
+    paintHint();
+    if(timer) clearInterval(timer);
+    if(v){ timer=setInterval(()=>{ if(document.visibilityState==='visible') load(); }, interval); }
   }
-
-  // ===== Rendering =====
-  function renderTable(header, idx, rows, tbodyEl, headEl, latestMap){
-    // extend header with 2 extra columns
-    const extHeader = [...header, '最新イベント', '現在位置'];
-    headEl.innerHTML = extHeader.map(h=>`<th>${h}</th>`).join('');
-    tbodyEl.innerHTML = '';
-
-    rows.forEach(r=>{
-      const rowUrg  = idx.status_flag!=null ? isUrgent(valAt(r, idx.status_flag)) : false;
-      const tds = header.map((_,i)=>`<td>${S(r[i])}</td>`);
-      const dateCol = (idx.date!=null ? idx.date : 0);
-      const d = idx.date!=null ? parseJPDate(valAt(r, idx.date)) : null;
-      const dateText = d ? toInputDate(d) : S(r[dateCol] ?? '');
-      const urgentFlag = rowUrg ? `<span class="flag-urgent">至急</span>` : '';
-      const statusObj = (idx.status_done!=null) ? getStatusFromValue(valAt(r, idx.status_done)) : null;
-      const badge = statusObj ? `<span class="tag ${statusObj.cls}">${statusObj.label}</span>` : '';
-      tds[dateCol] = `<td>${urgentFlag}${badge}${dateText}</td>`;
-
-      // choose item key: prefer 図番 → 商品名 → 注番 (sesuaikan dgn barcode yang kamu pakai)
-      const itemKey = S(valAt(r, idx.draw) || valAt(r, idx.item) || valAt(r, idx.note));
-      const latest = latestMap[itemKey];
-      tds.push(`<td>${latest ? S(latest.event) : '-'}</td>`);
-      tds.push(`<td>${latest ? S(latest.location) : '-'}</td>`);
-
-      tbodyEl.insertAdjacentHTML('beforeend', `<tr class="${rowUrg?'row-urgent':''}">${tds.join('')}</tr>`);
-    });
-  }
-
-  // ===== Process board render =====
-  function renderProcessBoard(stats){
-    const box = document.getElementById('procPills');
-    const hint= document.getElementById('procHint');
-    box.innerHTML = '';
-    if(!stats || !stats.event) {
-      hint.textContent = 'スキャンデータがありません。';
-      return;
-    }
-    // Order events visually
-    const order = ['RECEIVE','WIP','QC','PACK','SHIP'];
-    order.forEach(k=>{
-      const v = stats.event[k] || 0;
-      box.insertAdjacentHTML('beforeend', `<div class="pill"><small>${k}</small> ${v}</div>`);
-    });
-    // Top 3 locations
-    const locPairs = Object.entries(stats.location || {}).sort((a,b)=>b[1]-a[1]).slice(0,6);
-    locPairs.forEach(([loc,count])=>{
-      box.insertAdjacentHTML('beforeend', `<div class="pill"><small>LOC</small> ${loc}: ${count}</div>`);
-    });
-    hint.textContent = `最新：アイテム数 ${stats.total ?? 0}（最新スキャン基準）`;
-  }
-
-  // ===== Main loader =====
-  let aborter=null, isLoading=false;
-  let cached = { header:[], rows:[], idx:null, cmp:null };
-  let _scanData = { map:{}, stats:{} };
+  function paintHint(){ document.getElementById('hint').textContent = live?`Live: On / ${Math.round(interval/1000)}s`:'Live: Off'; }
 
   async function load(){
-    try{
-      if(isLoading){ if(aborter) aborter.abort(); }
-      isLoading=true;
-      const btn=document.getElementById('btnRefresh');
-      const old=btn.textContent; btn.textContent='Loading...'; btn.disabled=true;
+    const [rLog, rMas] = await Promise.all([
+      fetch(CSV_LOG+"&_ts="+Date.now(),{cache:'no-store'}),
+      fetch(CSV_MASTER+"&_ts="+Date.now(),{cache:'no-store'})
+    ]);
+    if(!rLog.ok || !rMas.ok){ document.getElementById('hint').textContent='読み込み失敗（公開/共有設定を確認）'; return; }
+    const [tLog, tMas] = await Promise.all([rLog.text(), rMas.text()]);
+    const log = parseCSV(tLog);
+    const mas = parseCSV(tMas);
+    if(log.length<2){ render([],{}); return; }
 
-      if(aborter) aborter.abort();
-      aborter=new AbortController();
-
-      // Pull master table
-      const url = CSV_URL + "&_ts=" + Date.now();
-      const res=await fetch(url,{signal:aborter.signal,cache:'no-store'});
-      if(!res.ok) throw new Error("HTTP "+res.status);
-      const text=await res.text();
-      const data=parseCSV(text);
-      if(!data.length) throw new Error("CSV empty");
-
-      const header=data[0], rowsRaw=data.slice(1);
-      const idx=indexByName(header);
-      const cmp = makeComparator(idx);
-      const rows=[...rowsRaw].sort(cmp);
-      cached = { header, rows, idx, cmp };
-
-      // Pull scan map
-      _scanData = await fetchScanMap();
-
-      // Urgent banner
-      const urgentCount = rows.reduce((n,r)=> n + (idx.status_flag!=null && isUrgent(valAt(r, idx.status_flag)) ? 1 : 0), 0);
-      document.getElementById('urgent-banner').textContent =
-        urgentCount>0 ? `⚠ 至急案件が ${urgentCount} 件あります！早急に確認してください。` : '現在、至急案件はありません。';
-
-      // Process Board
-      renderProcessBoard(_scanData.stats);
-
-      // 今日 section
-      renderTodaySection();
-
-      // Main table
-      applyFilter(null);
-
-      // Info
-      const cols = [];
-      if(idx.qty!=null) cols.push('数量:'+header[idx.qty]);
-      if(idx.cust!=null) cols.push('顧客:'+header[idx.cust]);
-      if(idx.date!=null) cols.push('出荷日:'+header[idx.date]);
-      document.getElementById('shipHint').textContent =
-        `データ元: ${TAB_NAME}（${rows.length} 行）｜${cols.join(' ｜ ')} ｜ Urgent列: ${idx.status_flag!=null ? header[idx.status_flag] : '—'}`;
-      document.getElementById('lastUpdated').textContent='Last update: '+new Date().toLocaleString();
-
-      // Prefill filter ke hari ini
-      document.getElementById('filterDate').value = toInputDate(new Date());
-
-      btn.textContent=old; btn.disabled=false; isLoading=false;
-    }catch(e){
-      console.error("[ERROR] load()", e);
-      const btn=document.getElementById('btnRefresh');
-      btn.textContent='Refresh now'; btn.disabled=false; isLoading=false;
-      document.getElementById('shipHint').textContent='読み込みに失敗しました。シート名/公開設定/列名をご確認ください。';
+    // Build latest map from scan_log
+    const hL = log[0].map(S);
+    const iL = { ts:hL.indexOf('ts'), id:hL.indexOf('item_id'), ev:hL.indexOf('event'), loc:hL.indexOf('location') };
+    const latest = {}; // id -> {ts, ev, loc}
+    for(let i=1;i<log.length;i++){
+      const r=log[i], id=S(r[iL.id]); if(!id) continue;
+      const ts=new Date(S(r[iL.ts])||0).getTime(); if(!ts) continue;
+      if(!latest[id] || ts > latest[id].ts){ latest[id]={ ts, ev:S(r[iL.ev]), loc:S(r[iL.loc]) }; }
     }
-  }
 
-  function renderTodaySection(){
-    const { header, rows, idx, cmp } = cached;
-    if(idx.date==null){ document.getElementById('todaySection').style.display='none'; return; }
-    const today = new Date();
-    const todayRows = rows
-      .filter(r => { const d = parseJPDate(valAt(r, idx.date)); return d && sameYMD(d, today); })
-      .sort(cmp);
-    const visible = todayRows.length>0;
-    document.getElementById('todaySection').style.display = visible ? '' : 'none';
-    if(!visible) return;
-    document.getElementById('todayCount').textContent = todayRows.length;
-    renderTable(header, idx, todayRows, document.getElementById('todayBody'), document.getElementById('todayHead'), _scanData.map);
-  }
-
-  function applyFilter(dateStr){
-    const { header, rows, idx, cmp } = cached;
-    let view = rows;
-    if(idx.date!=null && dateStr){
-      const target = new Date(dateStr+"T00:00:00");
-      view = rows.filter(r => { const d = parseJPDate(valAt(r, idx.date)); return d && sameYMD(d, target); }).sort(cmp);
+    // Optional: enrich with master
+    const rowsMas = mas.slice(1);
+    const hM = mas[0].map(S);
+    const iM = indexMaster(hM);
+    // build quick index by potential keys
+    const byDraw = new Map(), byItem = new Map(), byNote = new Map();
+    for(const r of rowsMas){
+      const draw=S(r[iM.draw]), item=S(r[iM.item]), note=S(r[iM.note]);
+      const entry={ cust:S(r[iM.cust]), item:S(r[iM.item]), machine:S(r[iM.machine]) };
+      if(draw) byDraw.set(draw, entry);
+      if(item) byItem.set(item, entry);
+      if(note) byNote.set(note, entry);
     }
-    renderTable(header, idx, view, document.getElementById('shipBody'), document.getElementById('shipHead'), _scanData.map);
-  }
 
-  // ===== Export =====
-  function exportExcel(){
-    const table=document.getElementById("shipTable");
-    const wb=XLSX.utils.table_to_book(table,{sheet:"出荷状況"});
-    XLSX.writeFile(wb,"出荷状況.xlsx");
-  }
-  function exportPDF(){
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({orientation:"landscape", unit:"pt", format:"a4"});
-    doc.setFontSize(14); doc.text("出荷状況一覧", 40, 40);
-    doc.autoTable({html:"#shipTable", startY:60, styles:{fontSize:9, cellPadding:4, halign:"center", valign:"middle"}, headStyles:{fillColor:[238,242,247]}});
-    doc.save("出荷状況.pdf");
-  }
-  document.getElementById("btnExcel").addEventListener("click", exportExcel);
-  document.getElementById("btnPDF").addEventListener("click", exportPDF);
-
-  // ===== Auto-refresh =====
-  let timer=null, intervalMs=60000;
-  function startAutoRefresh(ms){
-    intervalMs=ms; clearInterval(timer);
-    timer=setInterval(()=>{ if(document.visibilityState==='visible') load(); }, intervalMs);
-    document.getElementById('intervalInfo').textContent = `${Math.round(intervalMs/1000)}s`;
-    const liveBtn=document.getElementById('btnLive');
-    if(intervalMs<=5000){ liveBtn.classList.add('active'); liveBtn.textContent='Live: On'; }
-    else{ liveBtn.classList.remove('active'); liveBtn.textContent='Live: Off'; }
-  }
-
-  // ===== Scanner modal =====
-</script>
-
-<!-- Scanner Modal -->
-<div id="scanModal" style="display:none; position:fixed; inset:0; background:#0009; z-index:9999; align-items:center; justify-content:center;">
-  <div style="background:#fff; border-radius:16px; padding:16px; width:min(520px, 96vw);">
-    <div style="display:flex; gap:8px; align-items:center; justify-content:space-between; margin-bottom:8px">
-      <strong>スキャン</strong>
-      <button class="btn" id="scanClose" type="button">閉じる</button>
-    </div>
-    <div style="display:grid; gap:8px; margin-bottom:8px">
-      <select id="scanEvent" class="btn">
-        <option value="RECEIVE">RECEIVE（受入）</option>
-        <option value="WIP">WIP（工程中）</option>
-        <option value="QC">QC（検査）</option>
-        <option value="PACK">PACK（梱包）</option>
-        <option value="SHIP">SHIP（出荷）</option>
-      </select>
-      <input id="scanLocation" class="btn" placeholder="Location 例: 倉庫A / 組立1 / 出荷ヤード">
-      <input id="scanNote" class="btn" placeholder="Note (任意)">
-    </div>
-    <video id="scanVideo" style="width:100%; border:1px solid #e5e7eb; border-radius:12px"></video>
-    <div id="scanHint" class="small muted" style="margin-top:6px"></div>
-  </div>
-</div>
-
-<script>
-  let codeReader = null;
-  const scanModal = document.getElementById('scanModal');
-  const scanVideo = document.getElementById('scanVideo');
-  const scanHint  = document.getElementById('scanHint');
-
-  async function openScanner(){
-    scanModal.style.display = 'flex';
-    if(!codeReader){
-      codeReader = new ZXingBrowser.BrowserMultiFormatReader();
-    }
-    const devices = await ZXingBrowser.BrowserCodeReader.listVideoInputDevices();
-    const deviceId = devices?.[0]?.deviceId;
-    scanHint.textContent = devices.length ? 'カメラ初期化中…' : 'カメラが見つかりません';
-    if(!deviceId) return;
-
-    await codeReader.decodeFromVideoDevice(deviceId, scanVideo, async (result, err, controls) => {
-      if(result){
-        controls.stop();
-        const itemId = result.getText();
-        scanHint.textContent = `読み取り: ${itemId} → 送信中…`;
-        try{
-          const payload = {
-            token: LOG_TOKEN,
-            item_id: itemId,
-            event: document.getElementById('scanEvent').value,
-            location: document.getElementById('scanLocation').value || '',
-            user: CURRENT_USER,
-            note: document.getElementById('scanNote').value || ''
-          };
-          const res = await fetch(LOG_API, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-          const j = await res.json().catch(()=>({ok:false,error:'Invalid JSON'}));
-          if(j.ok){
-            scanHint.textContent = '記録しました ✅';
-            // Reload both master + scan map to reflect latest process instantly
-            await load();
-            // auto close shortly
-            setTimeout(closeScanner, 600);
-          }else{
-            scanHint.textContent = '送信失敗: ' + (j.error || res.status);
-          }
-        }catch(e){
-          scanHint.textContent = '送信エラー: ' + e.message;
-        }
-      }
+    // Compose rows
+    const out=[];
+    Object.entries(latest).forEach(([id,v])=>{
+      let meta = byDraw.get(id) || byItem.get(id) || byNote.get(id) || {};
+      out.push({
+        id, ev:v.ev||'-', loc:v.loc||'-',
+        ts: v.ts ? new Date(v.ts) : null,
+        cust: meta.cust||'', item: meta.item||'', machine: meta.machine||''
+      });
     });
-  }
-  function closeScanner(){
-    scanModal.style.display = 'none';
-    try{ codeReader?.reset(); }catch(e){}
+
+    render(out, latest);
   }
 
-  // ===== Events =====
-  document.getElementById('btnScan').addEventListener('click', openScanner);
-  document.getElementById('scanClose').addEventListener('click', closeScanner);
+  function render(rows, latest){
+    const q = S(document.getElementById('q').value).toLowerCase();
+    const fe= S(document.getElementById('fEvent').value);
+    const fl= S(document.getElementById('fLoc').value).toLowerCase();
 
-  document.getElementById('btnRefresh').addEventListener('click', load);
-  document.getElementById('btnLive').addEventListener('click', ()=>{ startAutoRefresh(intervalMs<=5000?60000:5000); load(); });
-  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') load(); });
+    let view = rows;
+    if(q){
+      view = view.filter(r =>
+        r.id.toLowerCase().includes(q) ||
+        (r.cust||'').toLowerCase().includes(q) ||
+        (r.item||'').toLowerCase().includes(q) ||
+        (r.machine||'').toLowerCase().includes(q) ||
+        (r.loc||'').toLowerCase().includes(q)
+      );
+    }
+    if(fe){ view = view.filter(r=>r.ev===fe); }
+    if(fl){ view = view.filter(r=>r.loc.toLowerCase().includes(fl)); }
 
-  document.getElementById('filterDate').addEventListener('change', (e)=> applyFilter(e.target.value || null));
-  document.getElementById('btnToday').addEventListener('click', ()=> applyFilter(toInputDate(new Date())));
-  document.getElementById('btnClear').addEventListener('click', ()=>{
-    document.getElementById('filterDate').value = "";
-    applyFilter(null);
-  });
+    // chips by location (top 10)
+    const chips = document.getElementById('chips'); chips.innerHTML='';
+    const locCount = {};
+    rows.forEach(r=>{ locCount[r.loc||'-'] = (locCount[r.loc||'-']||0)+1; });
+    Object.entries(locCount).sort((a,b)=>b[1]-a[1]).slice(0,10).forEach(([loc,c])=>{
+      chips.insertAdjacentHTML('beforeend', `<div class="pill">${loc}: ${c}</div>`);
+    });
 
-  window.addEventListener('DOMContentLoaded', ()=>{ load(); startAutoRefresh(60000); });
-</script>
-
-<!-- 管理 menu logic -->
-<script>
-  const _menuBtn = document.getElementById('menuBtn');
-  const _menu    = document.getElementById('menu');
-
-  function closeMenu(){
-    _menu?.classList.remove('open');
-    _menu?.setAttribute('aria-hidden','true');
+    // table
+    const tb=document.getElementById('tb'); tb.innerHTML='';
+    view.sort((a,b)=>(b.ts?.getTime()||0)-(a.ts?.getTime()||0));
+    view.forEach(r=>{
+      tb.insertAdjacentHTML('beforeend', `
+        <tr>
+          <td><a href="./item.html?id=${encodeURIComponent(r.id)}" style="color:#2563eb;text-decoration:none">${r.id}</a></td>
+          <td>${r.ev}</td>
+          <td>${r.loc}</td>
+          <td>${r.ts ? r.ts.toLocaleString() : '-'}</td>
+          <td>${r.cust||''}</td>
+          <td>${r.item||''}</td>
+          <td>${r.machine||''}</td>
+        </tr>
+      `);
+    });
+    document.getElementById('hint').textContent = `件数: ${view.length} / 全体: ${rows.length}`;
   }
-  _menuBtn?.addEventListener('click', (e)=>{
-    e.stopPropagation();
-    _menu.classList.toggle('open');
-    _menu.setAttribute('aria-hidden', _menu.classList.contains('open') ? 'false' : 'true');
-  });
-  document.addEventListener('click', closeMenu);
-  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeMenu(); });
 
-  document.getElementById('m-refresh')?.addEventListener('click', ()=>{
-    closeMenu();
-    document.getElementById('btnRefresh')?.click();
+  // Export simple
+  function exportExcel(){
+    const table = document.querySelector('table');
+    const wb = XLSX.utils.table_to_book(table,{sheet:"Positions"});
+    XLSX.writeFile(wb,"positions.xlsx");
+  }
+
+  // events
+  document.getElementById('btnLive').addEventListener('click', ()=> setLive(!live));
+  document.getElementById('selInterval').addEventListener('change', e=>{
+    interval=parseInt(e.target.value,10)||60000; if(live) setLive(true); else paintHint();
   });
-  document.getElementById('m-live')?.addEventListener('click', ()=>{
-    closeMenu();
-    document.getElementById('btnLive')?.click();
-  });
+  ['q','fEvent','fLoc'].forEach(id=> document.getElementById(id).addEventListener('input', ()=>load()));
+  document.getElementById('btnExport').addEventListener('click', exportExcel);
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState!=='visible' && live){ setLive(false); } });
+
+  paintHint();
+  load();
 </script>
 </body>
 </html>
