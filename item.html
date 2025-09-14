@@ -20,6 +20,7 @@
   .title{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0 0 8px}
   .muted{color:var(--muted)} .small{font-size:12px}
   .btn{height:36px;padding:0 12px;border:1px solid var(--border);border-radius:12px;background:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  .btn.active{background:#f0f9ff;border-color:#93c5fd}
   .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:999px;background:#fff;font-weight:700}
   .grid{display:grid;gap:12px}
   .grid.two{grid-template-columns: 1fr 1fr}
@@ -37,6 +38,8 @@
   .loc{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border:1px solid var(--border);border-radius:999px;background:#fff}
   .search{display:flex;gap:8px;flex-wrap:wrap}
   .search input{height:36px;padding:0 12px;border:1px solid var(--border);border-radius:12px}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  select{height:36px;padding:0 12px;border:1px solid var(--border);border-radius:12px;background:#fff}
   .footer{position:fixed;bottom:0;left:0;right:0;text-align:center;font-size:12px;color:#64748b;background:#f1f5f9;padding:4px 0}
 </style>
 </head>
@@ -51,14 +54,24 @@
 </header>
 
 <main class="grid">
-  <!-- Ringkas -->
+  <!-- Ringkas + Controls -->
   <section class="card">
     <div class="title">
       <h2 style="margin:0">アイテム概要</h2>
-      <div class="search">
-        <input id="idInput" placeholder="item_id / 図番 / 注番 を入力">
-        <button id="btnGo" class="btn">表示</button>
-        <button id="btnScan" class="btn">Scan</button>
+      <div class="controls">
+        <div class="search">
+          <input id="idInput" placeholder="item_id / 図番 / 注番 を入力">
+          <button id="btnGo" class="btn">表示</button>
+          <button id="btnScan" class="btn">Scan</button>
+        </div>
+        <button id="btnLive" class="btn" title="Auto refresh toggle">Live</button>
+        <select id="selInterval" title="Refresh interval">
+          <option value="5000">5s</option>
+          <option value="10000">10s</option>
+          <option value="30000">30s</option>
+          <option value="60000" selected>60s</option>
+        </select>
+        <span id="liveHint" class="small muted"></span>
       </div>
     </div>
     <div class="grid two">
@@ -107,7 +120,7 @@
 
 <div class="footer">Design by Wahyu</div>
 
-<!-- ZXing (opsional scan di halaman ini) -->
+<!-- ZXing -->
 <script src="https://unpkg.com/@zxing/browser@latest"></script>
 
 <script>
@@ -116,7 +129,7 @@
   const LOG_TAB  ="scan_log";
   const LOG_CSV  =`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(LOG_TAB)}`;
 
-  // Endpoint Apps Script kamu (supaya bisa scan dan append dari halaman ini juga)
+  // Endpoint Apps Script (punya kamu)
   const LOG_API   ="https://script.google.com/macros/s/AKfycbxbStGHwWil46OzgINGXf8QyDQnylqao171zUsQyoHLrNjveLpZoc2NSBaEUsBkgCjL/exec";
   const LOG_TOKEN ="optional-or-same-as-server";
   const CURRENT_USER = "Wahyu";
@@ -140,16 +153,31 @@
   // ====== State ======
   let currentId = S(qs.get('id') || '');
   let codeReader = null;
+  let liveTimer = null;
+  let liveOn = false;
+  let liveInterval = 60000;
+  let lastRenderedAt = 0;
 
   // ====== Fetch & Render ======
-  async function loadAndRender(){
-    if(!currentId){ document.getElementById('tlHint').textContent = 'IDを入力してください。'; return; }
-    const url = LOG_CSV + "&_ts=" + Date.now();
-    const res = await fetch(url, {cache:'no-store'});
-    if(!res.ok){ document.getElementById('tlHint').textContent = '読み込み失敗'; return; }
+  async function loadAndRender(force=false){
+    if(!currentId){
+      document.getElementById('tlHint').textContent = 'IDを入力してください。';
+      paintSummary({rows:[]});
+      paintTimeline([]);
+      paintTable([]);
+      return;
+    }
+
+    // Throttle kecil biar nggak spam jika interval terlalu pendek
+    const now = Date.now();
+    if(!force && (now - lastRenderedAt) < 800){ return; }
+
+    const url = LOG_CSV + "&_ts=" + now;
+    const res = await fetch(url, {cache:'no-store'}).catch(()=>null);
+    if(!res || !res.ok){ document.getElementById('tlHint').textContent = '読み込み失敗'; return; }
     const text = await res.text();
     const data = parseCSV(text);
-    if(data.length<2){ document.getElementById('tlHint').textContent = 'ログなし'; return; }
+    if(data.length<2){ document.getElementById('tlHint').textContent = 'ログなし'; paintSummary({rows:[]}); paintTimeline([]); paintTable([]); return; }
 
     const header = data[0].map(S);
     const idx = {
@@ -161,7 +189,6 @@
       note: header.indexOf('note'),
     };
 
-    // Filter untuk item_id yang cocok (case sensitive by default)
     const rows = data.slice(1)
       .filter(r => S(r[idx.item]) === currentId)
       .map(r => ({
@@ -173,18 +200,25 @@
       }))
       .sort((a,b)=> a.ts - b.ts);
 
-    // Render ringkasan
+    paintSummary({rows});
+    paintTimeline(rows);
+    paintTable(rows);
+    document.getElementById('tlHint').textContent = rows.length ? '' : 'このIDのログはありません。';
+    lastRenderedAt = now;
+  }
+
+  function paintSummary({rows}){
     const sumId = document.getElementById('sumId');
     const sumEvent = document.getElementById('sumEvent');
     const sumLoc = document.getElementById('sumLoc');
     const sumCount = document.getElementById('sumCount');
     const sumLastTs = document.getElementById('sumLastTs');
 
-    sumId.textContent = `ID: ${currentId}`;
-    sumCount.textContent = `ログ件数: ${rows.length}`;
+    sumId.textContent = `ID: ${currentId || '-'}`;
+    sumCount.textContent = `ログ件数: ${rows.length || 0}`;
     if(rows.length){
       const last = rows[rows.length-1];
-      sumEvent.textContent = `最新イベント: ${last.ev}`;
+      sumEvent.textContent = `最新イベント: ${last.ev || '-'}`;
       sumLoc.textContent   = `現在位置: ${last.loc || '-'}`;
       sumLastTs.textContent= `最終更新: ${last.ts.toLocaleString()}`;
     }else{
@@ -192,26 +226,23 @@
       sumLoc.textContent   = `現在位置: -`;
       sumLastTs.textContent= `最終更新: -`;
     }
+  }
 
-    // Timeline
+  function paintTimeline(rows){
     const tl = document.getElementById('tl');
     tl.innerHTML = '';
-    if(!rows.length){
-      document.getElementById('tlHint').textContent = 'このIDのログはありません。';
-    }else{
-      document.getElementById('tlHint').textContent = '';
-      rows.forEach(r=>{
-        tl.insertAdjacentHTML('beforeend', `
-          <div class="tli">
-            <div class="ts">${r.ts.toLocaleString()}</div>
-            <div><span class="badge">${r.ev || '-'}</span> <span class="loc">LOC: ${r.loc || '-'}</span></div>
-            <div class="small muted">by ${r.user || '-'} ${r.note?`｜${r.note}`:''}</div>
-          </div>
-        `);
-      });
-    }
+    rows.forEach(r=>{
+      tl.insertAdjacentHTML('beforeend', `
+        <div class="tli">
+          <div class="ts">${r.ts.toLocaleString()}</div>
+          <div><span class="badge">${r.ev || '-'}</span> <span class="loc">LOC: ${r.loc || '-'}</span></div>
+          <div class="small muted">by ${r.user || '-'} ${r.note?`｜${r.note}`:''}</div>
+        </div>
+      `);
+    });
+  }
 
-    // Tabel
+  function paintTable(rows){
     const tb = document.getElementById('logBody');
     tb.innerHTML = '';
     rows.forEach(r=>{
@@ -227,9 +258,28 @@
     });
   }
 
-  // ====== Scan untuk langsung ke ID &/atau log event baru ======
+  // ====== Live controls ======
+  function startLive(){
+    stopLive();
+    liveOn = true;
+    document.getElementById('btnLive').classList.add('active');
+    paintLiveHint();
+    liveTimer = setInterval(()=>{
+      if(document.visibilityState === 'visible'){ loadAndRender(); }
+    }, liveInterval);
+  }
+  function stopLive(){
+    liveOn = false;
+    document.getElementById('btnLive').classList.remove('active');
+    paintLiveHint();
+    if(liveTimer) clearInterval(liveTimer);
+  }
+  function paintLiveHint(){
+    document.getElementById('liveHint').textContent = liveOn ? `Live: On / ${Math.round(liveInterval/1000)}s` : 'Live: Off';
+  }
+
+  // ====== Scan & post ======
   async function openScanner(){
-    // scanner sederhana: baca barcode → set input → prompt (opsional) kirim log
     if(!codeReader){ codeReader = new ZXingBrowser.BrowserMultiFormatReader(); }
     const devices = await ZXingBrowser.BrowserCodeReader.listVideoInputDevices();
     if(!devices?.length){ alert('カメラが見つかりません'); return; }
@@ -244,20 +294,20 @@
         controls.stop();
         document.body.removeChild(video);
         const id = result.getText();
-        // 1) Navigasi ke item
+        // Set ID + render
         document.getElementById('idInput').value = id;
         currentId = id; setQS(currentId);
-        await loadAndRender();
+        await loadAndRender(true);
 
-        // 2) (opsional) langsung catat event singkat
-        const ev = prompt('イベントを入力 (RECEIVE/WIP/QC/PACK/SHIP). Kosongkan jika tidak ingin log:','');
+        // Prompt quick log (opsional)
+        const ev = prompt('イベントを入力 (RECEIVE/WIP/QC/PACK/SHIP). 空でスキップ:','');
         if(ev){
           const loc = prompt('現在位置/工程名 (例: 倉庫A / 組立1 / 検査室)','');
           try{
             const payload = { token: LOG_TOKEN, item_id: id, event: ev, location: loc||'', user: CURRENT_USER, note:'' };
             const res = await fetch(LOG_API,{method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
             const j = await res.json().catch(()=>({ok:false,error:'Invalid JSON'}));
-            if(j.ok){ await loadAndRender(); alert('記録しました ✅'); }
+            if(j.ok){ await loadAndRender(true); alert('記録しました ✅'); }
             else { alert('送信失敗: '+ (j.error || res.status)); }
           }catch(e){
             alert('送信エラー: ' + e.message);
@@ -268,17 +318,31 @@
   }
 
   // ====== Events ======
-  document.getElementById('btnReload').addEventListener('click', loadAndRender);
+  document.getElementById('btnReload').addEventListener('click', ()=>loadAndRender(true));
   document.getElementById('btnGo').addEventListener('click', ()=>{
     const v = S(document.getElementById('idInput').value);
     if(!v) return;
-    currentId = v; setQS(currentId); loadAndRender();
+    currentId = v; setQS(currentId); loadAndRender(true);
   });
   document.getElementById('btnScan').addEventListener('click', openScanner);
 
-  // prefill dari QS
+  document.getElementById('btnLive').addEventListener('click', ()=>{
+    if(liveOn) stopLive(); else startLive();
+  });
+  document.getElementById('selInterval').addEventListener('change', (e)=>{
+    liveInterval = parseInt(e.target.value, 10) || 60000;
+    if(liveOn) startLive(); else paintLiveHint();
+  });
+  document.addEventListener('visibilitychange', ()=>{
+    // pause ketika tab disembunyikan (hemat, aman)
+    if(document.visibilityState !== 'visible'){ if(liveOn) stopLive(); }
+    else { if(liveOn) startLive(); }
+  });
+
+  // Init
   if(currentId){ document.getElementById('idInput').value = currentId; }
-  loadAndRender();
+  paintLiveHint();
+  loadAndRender(true);
 </script>
 </body>
 </html>
